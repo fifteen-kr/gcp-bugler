@@ -1,0 +1,10 @@
+# This is an example config file.
+
+[[servers]]
+id = "example"
+name = "Example Server"
+duration = "4h 20m"
+[servers.gcp]
+project = "example-project"
+zone = "us-central1-a"
+instance = "example-instance"
