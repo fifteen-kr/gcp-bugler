@@ -13,7 +13,6 @@ GCP-bugler does not provide any authentication mechanism. Use it behind a revers
 
 1. Enable API access for your GCP project.
 2. Create a service account with "Compute Instance Admin" role.
-3. Download the JSON key file.
 
 ## API
 
