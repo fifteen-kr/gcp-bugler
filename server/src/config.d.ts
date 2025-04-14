@@ -6,7 +6,7 @@ export interface ServerGCPConfig {
 
 export interface ServerConfig {
     id: string;
-    name: string;
+    name?: string;
     duration: string; // "1d", "4h 20m", etc... (parsed by `parse-duration`)
     gcp: ServerGCPConfig;
 }

@@ -22,6 +22,10 @@ Wakes up the server with the given ID.
 
 Resets the inactivity timer for the server with the given ID.
 
+### POST /persist/:server
+
+Sets the server with the given ID to persist, preventing it from shutting down due to inactivity.
+
 ### POST /stop/:server
 
 Shuts down the server with the given ID, clearing the inactivity timer.

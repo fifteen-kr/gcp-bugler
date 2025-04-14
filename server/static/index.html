@@ -2,11 +2,137 @@
 <html>
     <head>
         <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="referrer" content="no-referrer" />
         <title>GCP Control Panel</title>
+<style>
+body {
+    font-family: sans-serif;
+    background-color: #FAFAFA;
+    text-align: center;
+}
+
+table.gcp-status-list {
+    margin: 0 auto;
+    border-collapse: collapse;
+
+    th, td {
+        padding: 0.5em;
+        border: 1px solid #CCC;
+    }
+    th {
+        background-color: #EEE;
+        font-weight: bold;
+    }
+    td {
+        text-align: center;
+    }
+    button {
+        margin: 0 0.1em;
+        padding: 0.5em;
+        border: 1px solid #CCC;
+        background-color: #DDF;
+        cursor: pointer;
+
+        &:hover {
+            background-color: #EEF;
+        }
+
+        &.btn-danger {
+            background-color: #FDD;
+            &:hover {
+                background-color: #FEE;
+            }
+        }
+    }
+}
+</style>
     </head>
     <body>
         <h1>GCP Control Panel</h1>
-        <button>Start</button>
-        <button>Stop</button>
+        <table class="gcp-status-list">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="gcp-status-list-body"></tbody>
+        </table>
+<script>
+//@ts-check
+
+/**
+ * @param {string} status
+ * @param {string} action
+ * @returns {boolean}
+ */
+function shouldShowButton(status, action) {
+    switch(action) {
+        // TODO: add more cases
+        default: return true;
+    }
+}
+
+async function updateStatus() {
+    /** @type {{servers: Array<{id: string; name?: string; status?: string; expire_time: number|null;}>}} */
+    const status = await (await fetch("./status")).json();
+    const rows = status.servers.map(({id: server_id, name: server_name, status, expire_time}) => {
+        const elem_row = document.createElement('tr');
+
+        const elem_name = document.createElement('td');
+        elem_name.textContent = server_name ?? server_id;
+        elem_row.appendChild(elem_name);
+
+        const elem_status = document.createElement('td');
+        elem_status.textContent = status ?? "Unknown";
+        elem_row.appendChild(elem_status);
+
+        const elem_action = document.createElement('td');
+
+        for(const [action, btn_text] of [
+            ['start', 'Start'],
+            ['keep-alive', 'Keep Using'],
+            ['persist', 'Persist'],
+            ['stop', 'Stop'],
+        ]) {
+            const btn = document.createElement('button');
+            btn.textContent = btn_text;
+
+            if(action === 'stop') {
+                btn.classList.add('btn-danger');
+            }
+
+            btn.addEventListener('click', async () => {
+                if(!confirm(`Do you want to ${action} the server "${server_name ?? server_id}"?`)) return;
+
+                try {
+                    await fetch(`./${action}/${server_id}`, {method: 'POST'});
+                } catch(err) {
+                    alert("An error has been occurred!");
+                    return;
+                }
+
+                void updateStatus();
+            });
+            elem_action.appendChild(btn);
+        }
+
+        elem_row.appendChild(elem_action);
+
+        return elem_row;
+    });
+
+    document.getElementById('gcp-status-list-body')?.replaceChildren(...rows);
+}
+
+async function main() {
+    void updateStatus();
+}
+
+main().catch((err) => console.error(err));
+</script>
     </body>
 </html>

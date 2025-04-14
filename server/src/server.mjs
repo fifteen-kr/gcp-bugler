@@ -71,6 +71,17 @@ export async function startServer({config_path, timer_path, port}) {
         }
     };
 
+    const persistServer = async (server_id) => {
+        fastify.log.info(`Persisting server '${server_id}'...`);
+        const server_config = server_config_by_id.get(server_id);
+        if(!server_config) {
+            throw new Error(`Server '${server_id}' not found!`);
+        }
+
+        expire_timer.clearExpire(server_id);
+        fastify.log.info(`Server '${server_id}' has been persisted.`);
+    };
+
     /** @param {string} server_id */
     const stopServer = async (server_id) => {
         fastify.log.info(`Shutting down server '${server_id}'...`);
@@ -147,6 +158,22 @@ export async function startServer({config_path, timer_path, port}) {
         reply.status(200).send({success: true});
     });
     
+    fastify.post("/persist/:server", async (req, reply) => {
+        const server_id = (/** @type {{ server: string }} */ (req.params)).server;
+        if(!server_config_by_id.has(server_id)) {
+            reply.status(404).send({error: `Server not found.`});
+            return;
+        }
+
+        try {
+            await persistServer(server_id);
+        } catch(err) {
+            fastify.log.error(err);
+            reply.status(500).send({error: `Failed to persist server.`});
+            return;
+        }
+    });
+
     fastify.post("/stop/:server", async (req, reply) => {
         const server_id = (/** @type {{ server: string }} */ (req.params)).server;
         if(!server_config_by_id.has(server_id)) {

@@ -24,11 +24,23 @@ export class ExpireTimer {
             throw new Error("Cannot load while timer is running.");
         }
 
-        /** @type {Array<[string, number]>} */
-        const data = JSON.parse(await fs.readFile(file_path, "utf-8"));
+        try {
+            /** @type {Array<[string, number]>} */
+            const data = JSON.parse(await fs.readFile(file_path, "utf-8"));
+            this.expire = new Map(data);
+        } catch(err) {
+            if(!(err instanceof Error)) {
+                throw err;
+            }
+
+            if(!('code' in err) || err.code !== 'ENOENT') {
+                throw err;
+            }
+
+            this.expire.clear();
+        }
 
         this.file_path = file_path;
-        this.expire = new Map(data);
     }
 
     /** @param {string|null} file_path */
