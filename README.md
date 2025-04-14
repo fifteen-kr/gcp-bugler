@@ -1,5 +1,6 @@
-# gcp-bugler
-GCP-bugler provides two simple features:
+# GCP-Bugler
+
+GCP-Bugler provides two simple features:
 
 - A simple web page for waking up servers running on GCP.
 - Shut down the server after a certain period of inactivity.
@@ -7,6 +8,12 @@ GCP-bugler provides two simple features:
 Be warned that this project is intended for personal projects, and not for production use.
 
 GCP-bugler does not provide any authentication mechanism. Use it behind a reverse proxy that provides authentication.
+
+## Setup
+
+1. Enable API access for your GCP project.
+2. Create a service account with "Compute Instance Admin" role.
+3. Download the JSON key file.
 
 ## API
 

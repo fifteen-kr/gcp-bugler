@@ -31,7 +31,7 @@ export async function startServer({config_path, timer_path, port}) {
     const server_config_by_id = new Map((config.servers || []).map((s) => [s.id, s]));
 
     const computeClient = new compute.InstancesClient();
-    
+   
     const INDEX_PAGE = await fs.readFile(path.join(STATIC_DIR, "index.html"), "utf-8");
 
     const fastify = Fastify({ logger: true });
@@ -42,6 +42,24 @@ export async function startServer({config_path, timer_path, port}) {
         const duration = parseDuration(server_config.duration) ?? 3600_000;
 
         expire_timer.setExpire(server_config.id, now + duration);
+    };
+
+    /** @param {string} server_id */
+    const getGCPServerStatus = async (server_id) => {
+        const server_config = server_config_by_id.get(server_id);
+        if(!server_config) {
+            return null;
+        }
+
+        const [instance] = await computeClient.get(server_config.gcp);
+
+        return {
+            name: instance.name,
+            status: instance.status,
+
+            last_stop: instance.lastStopTimestamp ? (new Date(instance.lastStopTimestamp)).getTime() : null,
+            last_start: instance.lastStartTimestamp ? (new Date(instance.lastStartTimestamp)).getTime() : null
+        };
     };
 
     /** @param {string} server_id */
@@ -110,10 +128,16 @@ export async function startServer({config_path, timer_path, port}) {
     fastify.get("/status", async (req, reply) => {
         const statuses = await Promise.all(
             config.servers.map(async (server) => {
+                const gcp_status = await getGCPServerStatus(server.id);
+
                 const expire_time = expire_timer.expire.get(server.id) ?? null;
                 return {
                     id: server.id,
                     name: server.name,
+                    gcp_name: gcp_status?.name ?? null,
+                    status: gcp_status?.status ?? null,
+                    last_start: gcp_status?.last_start ?? null,
+                    last_stop: gcp_status?.last_stop ?? null,
                     expire_time,
                 };
             })

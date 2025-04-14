@@ -56,13 +56,21 @@ table.gcp-status-list {
                 <tr>
                     <th>Name</th>
                     <th>Status</th>
+                    <th>Last Started At</th>
+                    <th>Expire At</th>
                     <th>Action</th>
                 </tr>
             </thead>
             <tbody id="gcp-status-list-body"></tbody>
         </table>
+        <p id="status">Initializing...</p>
 <script>
 //@ts-check
+
+/** @param {number} date */
+function timestampToString(date) {
+    return new Date(date).toLocaleString();
+}
 
 /**
  * @param {string} status
@@ -71,15 +79,26 @@ table.gcp-status-list {
  */
 function shouldShowButton(status, action) {
     switch(action) {
-        // TODO: add more cases
+        case 'start': return status === 'TERMINATED' || status === 'SUSPENDED';
+        case 'keep-alive':
+        case 'persist':
+        case 'stop': return status === 'STAGING' || status === 'RUNNING';
         default: return true;
     }
 }
 
+/** @param {string} status */
+function setStatus(status) {
+    const p_elem = document.getElementById('status');
+    if(p_elem) p_elem.textContent = status;
+}
+
 async function updateStatus() {
-    /** @type {{servers: Array<{id: string; name?: string; status?: string; expire_time: number|null;}>}} */
+    setStatus("Updating...");
+
+    /** @type {{servers: Array<{id: string; name?: string; status?: string; last_start?: number|null, last_stop?: number|null, expire_time: number|null;}>}} */
     const status = await (await fetch("./status")).json();
-    const rows = status.servers.map(({id: server_id, name: server_name, status, expire_time}) => {
+    const rows = status.servers.map(({id: server_id, name: server_name, status, last_start, last_stop, expire_time}) => {
         const elem_row = document.createElement('tr');
 
         const elem_name = document.createElement('td');
@@ -90,6 +109,14 @@ async function updateStatus() {
         elem_status.textContent = status ?? "Unknown";
         elem_row.appendChild(elem_status);
 
+        const elem_start_time = document.createElement('td');
+        elem_start_time.textContent = last_start != null ? timestampToString(last_start) : "None";
+        elem_row.appendChild(elem_start_time);
+
+        const elem_expire_time = document.createElement('td');
+        elem_expire_time.textContent = expire_time != null ? timestampToString(expire_time) : "None";
+        elem_row.appendChild(elem_expire_time);
+
         const elem_action = document.createElement('td');
 
         for(const [action, btn_text] of [
@@ -98,6 +125,9 @@ async function updateStatus() {
             ['persist', 'Persist'],
             ['stop', 'Stop'],
         ]) {
+            if(status && !shouldShowButton(status, action)) continue;
+            if(expire_time == null && (action === 'keep-alive' || action === 'persist')) continue;
+
             const btn = document.createElement('button');
             btn.textContent = btn_text;
 
@@ -126,6 +156,7 @@ async function updateStatus() {
     });
 
     document.getElementById('gcp-status-list-body')?.replaceChildren(...rows);
+    setStatus("");
 }
 
 async function main() {
